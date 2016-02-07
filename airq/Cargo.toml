@@ -1,0 +1,9 @@
+[package]
+name = "airq"
+version = "0.1.0"
+authors = ["Cyryl Płotnicki-Chudyk <cyplo@cyplo.net>"]
+
+[dependencies]
+
+hyper = "0.7.2"
+
