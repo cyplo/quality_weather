@@ -1,8 +1,6 @@
 use std::io::BufReader;
 use std::io::BufRead;
 use std::fs::File;
-use std::iter::Enumerate;
-use std::iter::Map;
 
 extern crate rustc_serialize;
 use rustc_serialize::base64::{ToBase64, URL_SAFE};
@@ -14,7 +12,6 @@ use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
 fn main() {
     println!("Preparing data ...");
-    let http_client = Client::new();
 
     let mut headers = Headers::new();
     let accept_header = get_accept_header();
@@ -25,6 +22,8 @@ fn main() {
     let url = format!("https://api.foobot.io/v2/user/{}/login/", username);
     println!("Getting data from foobot ...");
 
+    let http_client = Client::new();
+    
 }
 
 fn get_accept_header() -> Accept {
@@ -39,7 +38,6 @@ fn get_authorization_header() -> Authorization<String> {
     let (username, password) = get_username_and_password();
     let username_and_password = format!("{}:{}", username, password);
     let base64auth = username_and_password.as_bytes().to_base64(URL_SAFE);
-    println!("hash is: {}", base64auth);
     
     let authorization_header = Authorization(base64auth);
     return authorization_header;
@@ -48,12 +46,13 @@ fn get_authorization_header() -> Authorization<String> {
 fn get_username_and_password() -> (String, String) {
     let file = match File::open("credentials") {
         Ok(handle) => handle,
-        Err(e) => panic!(e)
+        Err(_) => panic!("cannot load credentials file")
     };
     let file_reader = BufReader::new(&file);
+    
     let mut text_lines = file_reader.lines().map( |line| { line.unwrap() });
-    let username = text_lines.nth(0);
-    let password = text_lines.nth(1);
-    return (username.unwrap(), password.unwrap());
+    let username = text_lines.next().unwrap();
+    let password = text_lines.next().unwrap();
+    return (username, password);
 }
 
