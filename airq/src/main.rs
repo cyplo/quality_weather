@@ -7,6 +7,7 @@ use rustc_serialize::base64::{ToBase64, URL_SAFE};
 
 #[macro_use] extern crate hyper;
 use hyper::Client;
+use hyper::client::IntoUrl;
 use hyper::header::{Headers, Accept, Authorization, qitem};
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
@@ -23,11 +24,13 @@ fn main() {
     headers.set(authorization_header);
     headers.set(token_header);
     let (username, _, _) = get_credentials();
-    let url = format!("https://api.foobot.io/v2/user/{}/login/", username);
-    println!("Getting data from foobot ...");
+    let url = format!("https://api.foobot.io/v2/user/{}/login/", username).into_url().unwrap();
+
+    println!("Getting data from foobot at ({})...", url);
 
     let http_client = Client::new();
-    
+    let response = http_client.get(url).headers(headers).send().unwrap(); 
+    assert_eq!(response.status, hyper::Ok);
 }
 
 fn get_token_header() -> TokenHeader {
