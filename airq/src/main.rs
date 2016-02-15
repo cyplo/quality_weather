@@ -11,7 +11,8 @@ use hyper::client::IntoUrl;
 use hyper::header::{Headers, Accept, Authorization, qitem};
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
-header! { (TokenHeader, "X-API-KEY-TOKEN") => [String] }
+header! { (ApiTokenHeader, "X-API-KEY-TOKEN") => [String] }
+header! { (AuthToken, "X-AUTH-TOKEN") => [String] }
 
 fn main() {
     println!("Preparing data ...");
@@ -31,11 +32,14 @@ fn main() {
     let http_client = Client::new();
     let response = http_client.get(url).headers(headers).send().unwrap(); 
     assert_eq!(response.status, hyper::Ok);
+    let ref headers = response.headers;
+    let auth_token = headers.get::<AuthToken>().unwrap();
+    println!("got auth token back: {}", auth_token);
 }
 
-fn get_token_header() -> TokenHeader {
+fn get_token_header() -> ApiTokenHeader {
     let (_, _, token) = get_credentials(); 
-    return TokenHeader(token);
+    return ApiTokenHeader(token);
 }
 
 fn get_accept_header() -> Accept {
