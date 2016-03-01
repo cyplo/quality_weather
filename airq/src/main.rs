@@ -16,6 +16,10 @@ header! { (AuthToken, "X-AUTH-TOKEN") => [String] }
 
 fn main() {
     println!("Preparing data ...");
+    get_auth_token();
+}
+
+fn get_auth_token() -> AuthToken {
 
     let mut headers = Headers::new();
     let accept_header = get_accept_header();
@@ -35,6 +39,7 @@ fn main() {
     let ref headers = response.headers;
     let auth_token = headers.get::<AuthToken>().unwrap();
     println!("got auth token back: {}", auth_token);
+    return auth_token.clone();
 }
 
 fn get_token_header() -> ApiTokenHeader {
