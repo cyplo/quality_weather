@@ -18,8 +18,12 @@ header! { (ApiTokenHeader, "X-API-KEY-TOKEN") => [String] }
 header! { (AuthToken, "X-AUTH-TOKEN") => [String] }
 
 fn main() {
-    println!("Preparing data ...");
     let auth_token = get_auth_token();
+    let uuid = get_first_device_uuid(auth_token);
+    println!("{}", uuid);
+}
+
+fn get_first_device_uuid(auth_token: AuthToken) -> String {
     let (username, _, _) = get_credentials();
     let path = format!("owner/{}/device/", username);
     let url = create_url(path);
@@ -27,7 +31,14 @@ fn main() {
 
     let mut response_body = String::new();
     response.read_to_string(&mut response_body);
-    println!("{}", response_body);
+    let response_json = Json::from_str(&response_body).unwrap();
+    let devices = response_json.as_array().unwrap();
+    let ref device = devices[0];
+    let device_json_object = device.as_object().unwrap();
+    let uuid_json = device_json_object.get("uuid").unwrap();
+    let uuid_str = uuid_json.as_string().unwrap();
+    let uuid = String::from(uuid_str);
+    return uuid;
 }
 
 fn create_url(path: String) -> Url {
@@ -63,7 +74,6 @@ fn get_auth_token() -> AuthToken {
     let response = send_raw_request(url, headers);
     let ref headers = response.headers;
     let auth_token = headers.get::<AuthToken>().unwrap();
-    println!("got auth token back: {}", auth_token);
     return auth_token.clone();
 }
 
