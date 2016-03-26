@@ -1,13 +1,16 @@
+use std::io::Read;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::fs::File;
 
 extern crate rustc_serialize;
 use rustc_serialize::base64::{ToBase64, URL_SAFE};
+use rustc_serialize::json::Json;
 
 #[macro_use] extern crate hyper;
-use hyper::Client;
+use hyper::{Client, Url};
 use hyper::client::IntoUrl;
+use hyper::client::response::Response;
 use hyper::header::{Headers, Accept, Authorization, qitem};
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
@@ -16,11 +19,37 @@ header! { (AuthToken, "X-AUTH-TOKEN") => [String] }
 
 fn main() {
     println!("Preparing data ...");
-    get_auth_token();
+    let auth_token = get_auth_token();
+    let (username, _, _) = get_credentials();
+    let path = format!("owner/{}/device/", username);
+    let url = create_url(path);
+    let mut response = send_request(url, auth_token);
+
+    let mut response_body = String::new();
+    response.read_to_string(&mut response_body);
+    println!("{}", response_body);
+}
+
+fn create_url(path: String) -> Url {
+    return format!("https://api.foobot.io/v2/{}", path).into_url().unwrap();
+}
+
+fn send_request(url: Url, auth_token: AuthToken) -> Response {
+    let mut headers = Headers::new();
+    headers.set(auth_token);
+    return send_raw_request(url, headers); 
+}
+
+fn send_raw_request(url: Url, headers: Headers) -> Response {
+    let http_client = Client::new();
+    println!("Sending GET request to: {}", url);
+    let response = http_client.get(url).headers(headers).send().unwrap(); 
+    println!("Got: {}", response.status); 
+    assert_eq!(response.status, hyper::Ok);
+    return response;
 }
 
 fn get_auth_token() -> AuthToken {
-
     let mut headers = Headers::new();
     let accept_header = get_accept_header();
     let authorization_header = get_authorization_header();
@@ -29,13 +58,9 @@ fn get_auth_token() -> AuthToken {
     headers.set(authorization_header);
     headers.set(token_header);
     let (username, _, _) = get_credentials();
-    let url = format!("https://api.foobot.io/v2/user/{}/login/", username).into_url().unwrap();
+    let url = create_url(format!("user/{}/login/", username));
 
-    println!("Getting data from foobot at ({})...", url);
-
-    let http_client = Client::new();
-    let response = http_client.get(url).headers(headers).send().unwrap(); 
-    assert_eq!(response.status, hyper::Ok);
+    let response = send_raw_request(url, headers);
     let ref headers = response.headers;
     let auth_token = headers.get::<AuthToken>().unwrap();
     println!("got auth token back: {}", auth_token);
