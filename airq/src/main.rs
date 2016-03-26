@@ -19,19 +19,26 @@ header! { (AuthToken, "X-AUTH-TOKEN") => [String] }
 
 fn main() {
     let auth_token = get_auth_token();
-    let uuid = get_first_device_uuid(auth_token);
-    println!("{}", uuid);
+    let uuid = get_first_device_uuid(auth_token.clone());
+    let path = format!("device/{}/datapoint/0/last/0/", uuid);
+    let url = create_url(path);
+    let response = get_json(url, auth_token.clone());
+    println!("{:?}", response);
+}
+
+fn get_json(url: Url, auth_token: AuthToken) -> Json {
+    let mut response = send_request(url, auth_token);
+    let mut response_body = String::new();
+    response.read_to_string(&mut response_body);
+    let response_json = Json::from_str(&response_body).unwrap();
+    return response_json;
 }
 
 fn get_first_device_uuid(auth_token: AuthToken) -> String {
     let (username, _, _) = get_credentials();
     let path = format!("owner/{}/device/", username);
     let url = create_url(path);
-    let mut response = send_request(url, auth_token);
-
-    let mut response_body = String::new();
-    response.read_to_string(&mut response_body);
-    let response_json = Json::from_str(&response_body).unwrap();
+    let response_json = get_json(url, auth_token);
     let devices = response_json.as_array().unwrap();
     let ref device = devices[0];
     let device_json_object = device.as_object().unwrap();
